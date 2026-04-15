@@ -1,0 +1,115 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Мой профиль{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        background-color: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 3rem;
+        font-weight: bold;
+    }
+    .profile-info {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    .info-row {
+        display: flex;
+        padding: 1rem 0;
+        border-bottom: 1px solid #eee;
+    }
+    .info-label {
+        font-weight: bold;
+        width: 150px;
+        color: #2c3e50;
+    }
+    .info-value {
+        flex: 1;
+        color: #666;
+    }
+    .stats {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .stats h3 {
+        margin-bottom: 1rem;
+        color: #2c3e50;
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #3498db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            {{ user.username|first|upper }}
+        </div>
+        <h1>{{ user.get_full_name|default:user.username }}</h1>
+        <p>На сайте с {{ user.date_joined|date:"d.m.Y" }}</p>
+    </div>
+    
+    <div class="profile-info">
+        <div class="info-row">
+            <div class="info-label">Имя пользователя:</div>
+            <div class="info-value">{{ user.username }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Email:</div>
+            <div class="info-value">{{ user.email }}</div>
+        </div>
+        {% if user.first_name %}
+        <div class="info-row">
+            <div class="info-label">Имя:</div>
+            <div class="info-value">{{ user.first_name }}</div>
+        </div>
+        {% endif %}
+        {% if user.last_name %}
+        <div class="info-row">
+            <div class="info-label">Фамилия:</div>
+            <div class="info-value">{{ user.last_name }}</div>
+        </div>
+        {% endif %}
+        <div class="info-row">
+            <div class="info-label">Последний визит:</div>
+            <div class="info-value">{{ user.last_login|date:"d.m.Y H:i" }}</div>
+        </div>
+    </div>
+    
+    <div class="stats">
+        <h3>Моя активность</h3>
+        <div>
+            <span class="stat-number">{{ user.album_set.count }}</span>
+            <span>альбомов добавлено</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

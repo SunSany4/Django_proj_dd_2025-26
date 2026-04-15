@@ -1,0 +1,65 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Удаление альбома{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-container {
+        max-width: 500px;
+        margin: 2rem auto;
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .warning-icon {
+        font-size: 4rem;
+        color: #e74c3c;
+        margin-bottom: 1rem;
+    }
+    .album-info {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+        text-align: left;
+    }
+    .button-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+    .btn-danger {
+        background-color: #e74c3c;
+    }
+    .btn-danger:hover {
+        background-color: #c0392b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-container">
+    <div class="warning-icon">⚠️</div>
+    <h1>Удаление альбома</h1>
+    <p>Вы уверены, что хотите удалить этот альбом?</p>
+    
+    <div class="album-info">
+        <strong>{{ album.artist }} - {{ album.title }}</strong><br>
+        {% if album.year %}
+        <small>Год: {{ album.year }}</small><br>
+        {% endif %}
+        <small>Цена: {{ album.price }} ₽</small>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="button-group">
+            <a href="{% url 'album_detail' album.pk %}" class="btn btn-secondary">Отмена</a>
+            <button type="submit" class="btn btn-danger">Да, удалить</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

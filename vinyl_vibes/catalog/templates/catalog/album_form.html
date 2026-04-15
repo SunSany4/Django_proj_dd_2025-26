@@ -1,0 +1,227 @@
+{% extends 'catalog/base.html' %}
+{% block title %}Добавить альбом{% endblock %}
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+    .form-group input.is-valid {
+        border-color: #2ecc71;
+    }
+    .form-group input.is-invalid {
+        border-color: #e74c3c;
+    }
+    .errorlist {
+        list-style: none;
+        color: #e74c3c;
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+    .help-text {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        margin-top: 0.25rem;
+    }
+    .validation-feedback {
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+        display: none;
+    }
+    .validation-feedback.valid-feedback {
+        color: #2ecc71;
+    }
+    .validation-feedback.invalid-feedback {
+        color: #e74c3c;
+    }
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+    }
+    .btn-secondary {
+        background-color: #95a5a6;
+    }
+    .btn-secondary:hover {
+        background-color: #7f8c8d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1 style="margin-bottom: 2rem; text-align: center;">Добавить новй альбом</h1>
+
+    <form method="post" id="albumForm"enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            {{ field.label_tag }}
+            {{ field }}
+
+            {% if field.help_text %}
+            <div class="help-text">{{ field.help_text }}</div>
+            {% endif %} 
+            
+            <div class="validation-feedback" id="{{ field.id_for_label }}-feedback"></div>
+
+            {% if field.errors %}
+            <ul class="errorList">
+                {% for error in field.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <div class="form-actions">
+            <a href="/" class="btn btn-secondary">Отмена</a>
+            <button type="submit" class="btn btn-secondary">Сохранить альбом</button>
+        </div>
+
+
+    </form>
+</div>
+
+
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("albumForm");
+    const priceInput = document.getElementById("{{ form.price.id_for_label }}");
+    const yearInput = document.getElementById("{{ form.year.id_for_label }}");
+    console.log(priceInput);
+    console.log(yearInput);
+
+    //  Validation func
+    function validatePrice() {
+        const feedback = document.getElementById("{{ form.price.id_for_label }}-feedback");
+        const value = priceInput.value.trim();
+        if (value === '') {
+            priceInput.classList.remove('is-valid', 'is-invalid');
+            feedback.style.display = 'none'
+            return
+        }
+        const price = parseFloat(value);
+
+        if (isNaN(price)) {
+            priceInput.classList.add('is-invalid');
+            priceInput.classList.remove('is-valid');
+            feedback.textContent = 'Пожалуйста, введите число';
+            feedback.className = 'validation-feedback invalid-feedback';
+            feedback.style.display = 'block';
+        } else if (price <= 0) {
+            priceInput.classList.add('is-invalid');
+            priceInput.classList.remove('is-valid');
+            feedback.textContent = 'Цена должна быть больше нуля';
+            feedback.className = 'validation-feedback invalid-feedback';
+            feedback.style.display = 'block';
+        } else {
+            priceInput.classList.add('is-valid');
+            priceInput.classList.remove('is-invalid');
+            feedback.textContent = '✓ Корректная цена';
+            feedback.className = 'validation-feedback valid-feedback';
+            feedback.style.display = 'block';
+        }
+
+
+    }
+
+    function validateYear() {
+        const feedback = document.getElementById("{{ form.year.id_for_label }}-feedback");
+        const value = yearInput.value.trim();
+        const currentYear = new Date().getFullYear();
+        if (value === '') {
+            priceInput.classList.remove('is-valid', 'is-invalid');
+            feedback.style.display = 'none'
+            return
+        }
+
+        const year = parseInt(value);
+        console.log(value);
+        if (isNaN(year)) {
+            yearInput.classList.add('is-invalid');
+            yearInput.classList.remove('is-valid');
+            feedback.textContent = 'Пожалуйста, введите год';
+            feedback.className = 'validation-feedback invalid-feedback';
+            feedback.style.display = 'block';
+        } else if (year <= 1900 || year > currentYear) {
+            yearInput.classList.add('is-invalid');
+            yearInput.classList.remove('is-valid');
+            feedback.textContent = `Год должен быть между 1900 и ${currentYear}`;
+            feedback.className = 'validation-feedback invalid-feedback';
+            feedback.style.display = 'block';
+        } else {
+            yearInput.classList.add('is-valid');
+            yearInput.classList.remove('is-invalid');
+            feedback.textContent = '✓ Корректный год';
+            feedback.className = 'validation-feedback valid-feedback';
+            feedback.style.display = 'block';
+        }
+
+    }
+    if (priceInput) {
+        priceInput.addEventListener('input', validatePrice);
+        priceInput.addEventListener('blur', validatePrice);
+    }
+    if (yearInput) {
+        yearInput.addEventListener('input', validateYear);
+        yearInput.addEventListener('blur', validateYear);
+    }
+    // Валидация всей формы перед отправкой
+    form.addEventListener('submit', function (event) {
+        let isValid = true;
+        console.log(isValid);
+        if (priceInput) {
+            validatePrice();
+            if (priceInput.classList.contains('is-invalid')) {
+                isValid = false;
+            }
+        }
+
+        if (yearInput && yearInput.value.trim() !== '') {
+            validateYear();
+            if (yearInput.classList.contains('is-invalid')) {
+                isValid = false;
+            }
+        }
+
+        if (!isValid) {
+            event.preventDefault();
+            alert('Пожалуйста, исправьте ошибки в форме');
+        }
+    });
+});
+</script>
+{% endblock %}

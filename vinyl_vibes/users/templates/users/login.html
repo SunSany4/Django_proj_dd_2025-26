@@ -1,0 +1,91 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Вход{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        max-width: 400px;
+        margin: 2rem auto;
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .auth-header h1 {
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+    .form-group input:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+    }
+    .auth-footer a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-header">
+        <h1>Вход</h1>
+        <p>Войдите в свой аккаунт</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <ul class="errorlist">
+                {% for error in field.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <button type="submit" class="btn" style="width: 100%;">Войти</button>
+    </form>
+    
+    <div class="auth-footer">
+        <p>Нет аккаунта? <a href="{% url 'register' %}">Зарегистрируйтесь</a></p>
+    </div>
+</div>
+{% endblock %}

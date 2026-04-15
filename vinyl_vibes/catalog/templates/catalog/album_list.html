@@ -1,0 +1,180 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Главная{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-section {
+        margin-bottom: 2rem;
+    }
+    .search-form {
+        display: flex;
+        gap: 1rem;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    .search-input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+    .search-input:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+    .albums-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    .album-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    .album-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .album-cover {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        background-color: #f0f0f0;
+    }
+    .album-info {
+        padding: 1rem;
+    }
+    .album-artist {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+    .album-title {
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+    .album-price {
+        font-weight: bold;
+        color: #e74c3c;
+        margin-bottom: 0.5rem;
+    }
+    .album-meta {
+        font-size: 0.85rem;
+        color: #999;
+        margin-bottom: 1rem;
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+    .page-link {
+        padding: 0.5rem 1rem;
+        background-color: white;
+        border: 1px solid #ddd;
+        text-decoration: none;
+        color: #333;
+        border-radius: 4px;
+        transition: all 0.3s;
+    }
+    .page-link:hover, .page-link.active {
+        background-color: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background-color: white;
+        border-radius: 8px;
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Наши виниловые пластинки</h1>
+
+<div class="search-section">
+    <form method="get" class="search-form">
+        <input type="text" name="search" value="{{ search_query }}" 
+               placeholder="Поиск по исполнителю, альбому или описанию..." 
+               class="search-input">
+        <button type="submit" class="btn">Найти</button>
+        {% if search_query %}
+        <a href="{% url 'album_list' %}" class="btn btn-secondary">Сбросить</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="albums-grid">
+    {% for album in page_obj %}
+    <div class="album-card">
+        {% if album.get_cover_url %}
+        <img src="{{ album.get_cover_url }}" alt="{{ album.title }}" class="album-cover">
+        {% else %}
+        <div class="album-cover" style="display: flex; align-items: center; justify-content: center; background-color: #eee; color: #999;">
+            Нет изображения
+        </div>
+        {% endif %}
+        <div class="album-info">
+            <div class="album-artist">{{ album.artist }}</div>
+            <div class="album-title">{{ album.title }}</div>
+            <div class="album-price">{{ album.price }} ₽</div>
+            <div class="album-meta">
+                {% if album.year %}
+                <span>📅 {{ album.year }}</span>
+                {% endif %}
+                <span>👁️ {{ album.views }}</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="{% url 'album_detail' album.id %}" class="btn" style="flex: 1; text-align: center;">Подробнее</a>
+                {% if user == album.author or user.is_superuser %}
+                <a href="{% url 'album_edit' album.id %}" class="btn" style="background-color: #f39c12; flex: 0.5;">✏️</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <p>Пока нет ни одного альбома.</p>
+        {% if user.is_authenticated %}
+        <a href="{% url 'album_create' %}" class="btn">Добавить первый альбом!</a>
+        {% else %}
+        <a href="{% url 'login' %}" class="btn">Войдите, чтобы добавить альбом</a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+       class="page-link">«</a>
+    {% endif %}
+    
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span class="page-link active">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+           class="page-link">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+    
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+       class="page-link">»</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
