@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from catalog import views as catalog_views
 from users import views as users_views
 from django.conf import settings
@@ -37,6 +37,8 @@ urlpatterns = [
     path('login/',users_views.user_login, name='login'),
     path('logout/', users_views.user_logout, name='logout'),
     path('profile/', users_views.profile, name='profile'),
+    #API URLs
+    path('api/', include('catalog.api_urls')),
 ]
 
 if settings.DEBUG:
