@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Album, Comment
-from .forms import AlbumForm, CommentForm
+from .models import Album, Comment, Cart, CartItem, Order, OrderItem
+from .forms import AlbumForm, CommentForm, OrderForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 # Create your views here.
 
 
@@ -108,3 +109,42 @@ def comment_delete(request, comment_pk):
     messages.success(request, 'Комментарий удален!')
     
     return redirect('album_detail', pk=album_pk)
+
+
+@login_required
+def cart_view(request):
+    cart = request.cart
+    return render(request, 'catalog/cart.html', {'cart': cart})
+
+
+@login_required
+def order_detail(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return render(request, 'catalog/order_detail.html', {'order': order})
+
+
+@login_required
+def orders_list(request):
+    orders = Order.objects.filter(user=request.user)
+    return render(request, 'catalog/orders_list.html', {'orders': orders})
+
+
+@require_POST
+def cart_remove(request, item_id):
+    cart = request.cart
+    cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
+    album_title = cart_item.album.title
+    cart_item.delete()
+    messages.success(request, f'Товар "{album_title}" удален из корзины!')
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'total_items': request.cart.get_total_items(),
+            'total_price': request.cart.get_total_price()
+            })
+    return redirect('cart_view')
+
+
+#TODO: оформление заказа
+#TODO: обновление количества товаров
+#TODO: добавление товара в корзину

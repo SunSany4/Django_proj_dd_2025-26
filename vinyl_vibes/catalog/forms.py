@@ -1,6 +1,6 @@
 from django import forms
-from .models import Album, Comment
-
+from .models import Album, Comment, Order
+import re
 class AlbumForm(forms.ModelForm):
     class Meta:
         model = Album
@@ -75,3 +75,31 @@ class CommentForm(forms.ModelForm):
         labels = {
             'text': ''
         }
+
+
+class OrderForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = ['shippind_address', 'phone', 'comment']
+        widgets = {
+            'shipping_address':forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Укажите полный адрес доставки'
+            }),
+            'phone':forms.TextInput(attrs={'placeholder': '+7 (999) 123-45-67'}),
+            'comment': forms.Textarea(attrs={
+                'rows': 2,
+                'placeholder': 'Дополнителная информация/требования (необязательно)'
+            }),
+        }
+        labels = {
+            'shipping_address': 'Адрес доставки',
+            'phone': 'Телефон',
+            'comment': 'Комментарий к заазу',
+        }
+
+        def clean_phone(self):
+            phone = self.cleaned_data.get('phone')
+            if not re.match(r'^[\+\d\s\(\)-]{10,20}$', phone):
+                raise forms.ValidationError('Введите корректный номер телефона')
+            return phone
