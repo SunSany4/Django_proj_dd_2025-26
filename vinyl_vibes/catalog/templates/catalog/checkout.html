@@ -1,0 +1,87 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Оформление заказа{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checkout-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .order-summary, .order-form {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .order-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+    }
+    .total {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid #ddd;
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+    }
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-container">
+    <div class="order-summary">
+        <h2>Ваш заказ</h2>
+        {% for item in cart.items.all %}
+        <div class="order-item">
+            <span>{{ item.album.artist }} - {{ item.album.title }} x {{ item.quantity }}</span>
+            <span>{{ item.get_total_price }} ₽</span>
+        </div>
+        {% endfor %}
+        <div class="total">
+            <div style="display: flex; justify-content: space-between;">
+                <span>Итого:</span>
+                <span>{{ cart.get_total_price }} ₽</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="order-form">
+        <h2>Данные для доставки</h2>
+        <form method="post">
+            {% csrf_token %}
+            
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div style="color: #e74c3c; font-size: 0.85rem;">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <button type="submit" class="btn" style="width: 100%;">Подтвердить заказ</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

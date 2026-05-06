@@ -1,0 +1,29 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Мои заказы{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Мои заказы</h1>
+    
+    {% if orders %}
+    <div class="orders-list">
+        {% for order in orders %}
+        <div class="order-card" style="background-color: white; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3>Заказ #{{ order.id }}</h3>
+                    <p>Дата: {{ order.created_at|date:"d.m.Y H:i" }}</p>
+                    <p>Статус: {{ order.get_status_display }}</p>
+                    <p>Сумма: {{ order.total_price }} ₽</p>
+                </div>
+                <a href="{% url 'order_detail' order.id %}" class="btn">Подробнее</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>У вас пока нет заказов</p>
+    {% endif %}
+</div>
+{% endblock %}

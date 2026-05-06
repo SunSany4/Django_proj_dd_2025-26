@@ -1,13 +1,14 @@
 from rest_framework import viewsets, generics, permissions, filters, status
+from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Album, Comment
-from .serializers import (AlbumSerializer, CommentSerializer, AlbumDetailSerializer, UserSerializer)
-from django_filters.rest_framework import DjangoFilterBackend
+from .models import *
+from .serializers import *
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from .permissions import IsAuthorOrReadonly
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 
@@ -97,3 +98,99 @@ class CustomAuthToken(ObtainAuthToken):
             'user_id': user.pk,
             'username': user.username
         })
+    
+
+class CartViewSet(viewsets.GenericViewSet):
+    serializer_class = CartSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return Cart.objects.filter(user=self.request.user)
+        return Cart.objects.filter(session_key=self.request.session.session_key)
+    
+    @action(detail=False, methods='get')
+    def my_cart(self, request):
+        serializer = self.get_serializer(request.cart)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def add_item(self, request):
+        album_id = request.data.get('album_id')
+        quantity = int(request.data.get('quantity', 1))
+
+        album = get_object_or_404(Album, id=album_id)
+        cart = request.cart
+
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            album=album,
+            defaults={'quantity': quantity}
+        )
+
+        if not created:
+            cart_item.quantity += quantity
+            cart_item.save()
+
+        serializer = CartItemSerializer(cart_item)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['post'])
+    def update_item(self, request):
+        album_id = request.data.get('album_id')
+        quantity = int(request.data.get('quantity', 1))
+
+        cart_item = get_object_or_404(CartItem, id=album_id, cart=request.cart)
+
+        if quantity > 0:
+            cart_item.quantity = quantity
+            cart_item.save()
+        else:
+            cart_item.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        serializer = CartItemSerializer(cart_item)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+    
+
+    @action(detail=False, methods=['delete'])
+    def remove_item(self, request):
+        item_id = request.data.get('item_id')
+        cart_item = get_object_or_404(CartItem, id=item_id, cart=request.cart)
+        cart_item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+    @action(detail=False, methods=['post'])
+    def clear(self, request):
+        request.cart.clear()
+        return Response({'message': 'Корзина очищена.'})
+
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        cart = self.request.cart
+
+        if cart.get_total_items() == 0:
+            raise serializers.ValidationError("Ваша корзина пуста.")
+
+        order = serializer.save(
+            total_price=cart.get_total_price(),
+            user=self.request.user
+            )
+        for cart_item in cart.items.all():
+            OrderItem.objects.create(
+                order=order,
+                album=cart_item.album,
+                quantity=cart_item.quantity,
+                price=cart_item.price,
+            )
+        cart.clear()
+        return order

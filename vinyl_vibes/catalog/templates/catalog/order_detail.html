@@ -1,0 +1,51 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Заказ #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Заказ #{{ order.id }}</h1>
+    
+    <div style="background-color: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+        <p><strong>Статус:</strong> {{ order.get_status_display }}</p>
+        <p><strong>Дата заказа:</strong> {{ order.created_at|date:"d.m.Y H:i" }}</p>
+        <p><strong>Адрес доставки:</strong> {{ order.shipping_address }}</p>
+        <p><strong>Телефон:</strong> {{ order.phone }}</p>
+        {% if order.comment %}
+        <p><strong>Комментарий:</strong> {{ order.comment }}</p>
+        {% endif %}
+    </div>
+    
+    <h2>Товары в заказе</h2>
+    <table style="width: 100%; background-color: white; border-radius: 8px; overflow: hidden;">
+        <thead>
+            <tr style="background-color: #f8f9fa;">
+                <th style="padding: 0.75rem;">Товар</th>
+                <th style="padding: 0.75rem;">Количество</th>
+                <th style="padding: 0.75rem;">Цена</th>
+                <th style="padding: 0.75rem;">Сумма</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.order_items.all %}
+            <tr>
+                <td style="padding: 0.75rem;">{{ item.album.artist }} - {{ item.album.title }}</td>
+                <td style="padding: 0.75rem;">{{ item.quantity }}</td>
+                <td style="padding: 0.75rem;">{{ item.price }} ₽</td>
+                <td style="padding: 0.75rem;">{{ item.get_total_price }} ₽</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="border-top: 2px solid #ddd;">
+                <td colspan="3" style="padding: 0.75rem; text-align: right;"><strong>Итого:</strong></td>
+                <td style="padding: 0.75rem;"><strong>{{ order.total_price }} ₽</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <div style="margin-top: 1rem;">
+        <a href="{% url 'orders_list' %}" class="btn btn-secondary">← Назад к заказам</a>
+    </div>
+</div>
+{% endblock %}

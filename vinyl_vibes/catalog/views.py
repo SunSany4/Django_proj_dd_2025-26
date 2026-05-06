@@ -5,6 +5,7 @@ from .forms import AlbumForm, CommentForm, OrderForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 # Create your views here.
 
 
@@ -117,18 +118,6 @@ def cart_view(request):
     return render(request, 'catalog/cart.html', {'cart': cart})
 
 
-@login_required
-def order_detail(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    return render(request, 'catalog/order_detail.html', {'order': order})
-
-
-@login_required
-def orders_list(request):
-    orders = Order.objects.filter(user=request.user)
-    return render(request, 'catalog/orders_list.html', {'orders': orders})
-
-
 @require_POST
 def cart_remove(request, item_id):
     cart = request.cart
@@ -145,6 +134,115 @@ def cart_remove(request, item_id):
     return redirect('cart_view')
 
 
-#TODO: оформление заказа
-#TODO: обновление количества товаров
-#TODO: добавление товара в корзину
+@require_POST
+def add_cart(request, album_id):
+    album = get_object_or_404(Album, id=album_id)
+    cart = request.cart
+
+    quantity = int(request.POST.get('quantity', 1))
+
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        album=album,
+        defaults={'quantity': quantity},
+    )
+
+    if not created:
+        cart_item.quantity = quantity
+        cart_item.save()
+
+    messages.success(request, f'"{album.title}" добавлен в корзину.')
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'total_items': request.cart.get_total_items(),
+            'total_price': request.cart.get_total_price(),
+            'item_total': cart_item.get_total_price(),
+        })
+    return redirect('cart_view')
+
+@require_POST
+def cart_update(request, item_id):
+    """Обновление количества товара в корзине"""
+    cart = getattr(request, 'cart', None)
+    if not cart:
+        return redirect('cart_view')
+    
+    cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
+    quantity = int(request.POST.get('quantity', 1))
+    
+    if quantity > 0:
+        cart_item.quantity = quantity
+        cart_item.save()
+    else:
+        cart_item.delete()
+    
+    messages.success(request, 'Корзина обновлена')
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'total_items': cart.get_total_items(),
+            'total_price': str(cart.get_total_price()),
+            'item_total': str(cart_item.get_total_price()) if quantity > 0 else '0'
+        })
+    
+    return redirect('cart_view')
+
+
+@login_required
+def checkout_view(request):
+    cart = request.cart
+
+    if cart.get_total_items() == 0:
+        messages.warning(request, "Ваша корзина пуста.")
+        return redirect("cart_view")
+    
+    if request.method == 'POST':
+        form = OrderForm(request.POST)
+        if form.is_valid():
+            order = Order.objects.create(
+                user=request.user,
+                total_price=cart.get_total_price(),
+                shipping_address=form.cleaned_data['shipping_address'],
+                phone=form.cleaned_data['phone'],
+                comment=form.cleaned_data['comment'],
+            )
+
+            for cart_item in cart.items.all():
+                OrderItem.objects.create(
+                    order=order,
+                    album=cart_item.album,
+                    quantity=cart_item.quantity,
+                    price=cart_item.album.price,
+                )
+            cart.clear()
+
+            messages.success(request, f"Заказ №{order.id} успешно оформлен.")
+            return redirect('order_detail', order_id=order.id)
+    else:
+        form = OrderForm()
+
+    return render(request, 'catalog/checkout.html', {
+        'form': form,
+        'cart': cart
+    })
+
+
+@login_required
+def order_detail(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return render(request, 'catalog/order_detail.html', {'order': order})
+
+
+@login_required
+def orders_list(request):
+    orders = Order.objects.filter(user=request.user)
+    return render(request, 'catalog/orders_list.html', {'orders': orders})
+
+
+
+
+
+

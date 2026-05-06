@@ -80,7 +80,7 @@ class CommentForm(forms.ModelForm):
 class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ['shippind_address', 'phone', 'comment']
+        fields = ['shipping_address', 'phone', 'comment']
         widgets = {
             'shipping_address':forms.Textarea(attrs={
                 'rows': 3,
@@ -95,11 +95,11 @@ class OrderForm(forms.ModelForm):
         labels = {
             'shipping_address': 'Адрес доставки',
             'phone': 'Телефон',
-            'comment': 'Комментарий к заазу',
+            'comment': 'Комментарий к заказу',
         }
 
-        def clean_phone(self):
-            phone = self.cleaned_data.get('phone')
-            if not re.match(r'^[\+\d\s\(\)-]{10,20}$', phone):
-                raise forms.ValidationError('Введите корректный номер телефона')
-            return phone
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if not re.match(r'^[\+\d\s\(\)-]{10,20}$', phone):
+            raise forms.ValidationError('Введите корректный номер телефона')
+        return phone

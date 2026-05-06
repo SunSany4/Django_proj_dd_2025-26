@@ -1,0 +1,135 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Корзина{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cart-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .cart-table {
+        width: 100%;
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .cart-table th, .cart-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+    .cart-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    .cart-item-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    .quantity-input {
+        width: 80px;
+        padding: 0.5rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        text-align: center;
+    }
+    .cart-summary {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .empty-cart {
+        text-align: center;
+        padding: 3rem;
+        background-color: white;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cart-container">
+    <h1>Корзина</h1>
+    
+    {% if cart.items.all %}
+    <table class="cart-table">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Название</th>
+                <th>Цена</th>
+                <th>Количество</th>
+                <th>Сумма</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in cart.items.all %}
+            <tr id="item-{{ item.id }}">
+                <td>
+                    {% if item.album.get_cover_url %}
+                    <img src="{{ item.album.get_cover_url }}" alt="{{ item.album.title }}" class="cart-item-image">
+                    {% else %}
+                    <div class="cart-item-image" style="background-color: #eee;"></div>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>{{ item.album.artist }}</strong><br>
+                    <small>{{ item.album.title }}</small>
+                </td>
+                <td>{{ item.album.price }} ₽</td>
+                <td>
+                    <form method="post" action="{% url 'cart_update' item.id %}" class="update-form">
+                        {% csrf_token %}
+                        <input type="number" name="quantity" value="{{ item.quantity }}" 
+                               min="0" max="99" class="quantity-input" data-item-id="{{ item.id }}">
+                    </form>
+                </td>
+                <td class="item-total">{{ item.get_total_price }} ₽</td>
+                <td>
+                    <form method="post" action="{% url 'cart_remove' item.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem;">✕</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="cart-summary">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3>Итого: <span id="cart-total">{{ cart.get_total_price }}</span> ₽</h3>
+                <p>Товаров в корзине: <span id="cart-items-count">{{ cart.get_total_items }}</span></p>
+            </div>
+            <div>
+                <a href="{% url 'album_list' %}" class="btn btn-secondary">Продолжить покупки</a>
+                <a href="{% url 'checkout' %}" class="btn">Оформить заказ</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-cart">
+        <h2>Ваша корзина пуста</h2>
+        <p>Добавьте товары в корзину, чтобы оформить заказ</p>
+        <a href="{% url 'album_list' %}" class="btn">Перейти к покупкам</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Автоматическое обновление количества
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+</script>
+{% endblock %}

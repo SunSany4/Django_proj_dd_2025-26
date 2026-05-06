@@ -118,7 +118,7 @@ class CartItem(models.Model):
     cart = models.ForeignKey(
         Cart,
         on_delete=models.CASCADE,
-        related_items='items'
+        related_name='items'
         )
     album = models.ForeignKey(
         Album,
@@ -136,7 +136,7 @@ class CartItem(models.Model):
     class Meta:
         verbose_name = 'Товар в корзине'
         verbose_name_plural = 'Товары в корзине'
-        unique_together = ['cart', 'album']
+        # unique_together = ['cart', 'album']
 
 
 class Order(models.Model):

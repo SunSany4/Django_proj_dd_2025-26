@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Album, Comment
+from .models import *
 
 
 
@@ -63,3 +63,65 @@ class AlbumDetailSerializer(AlbumSerializer):
 
     class Meta(AlbumSerializer.Meta):
         fields = AlbumSerializer.Meta.fields + ['comments']
+
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    album_title = serializers.ReadOnlyField(source='album.title')
+    album_artist = serializers.ReadOnlyField(source='album.artist')
+    album_price = serializers.ReadOnlyField(source='album.price')
+    album_cover = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CartItem
+        fields = ['id', 'album', 'album_title','album_artist', 'album_price'
+                  'album_cover', 'quantity', 'total_price']
+        
+    def get_album_cover(self, obj):
+        return obj.album.get_cover_url()
+    
+    def get_total_price(self, obj):
+        return obj.get_total_price()
+    
+
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, read_only=True)
+    total_price = serializers.SerializerMethodField()
+    total_items = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'items', 'total_price', 'total_items', 'created_at', 'updated_at']
+
+
+    def get_total_price(self, obj):
+        return obj.get_total_price()
+    
+    def get_total_items(self, obj):
+        return obj.get_total_items()
+    
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    album_title = serializers.ReadOnlyField(source='album.title')
+    album_artist = serializers.ReadOnlyField(source='album.artist')
+
+
+    class Meta:
+        model = Order
+        fields = ['id', 'status', 'status_display','total_price',
+                  'shipping_address', 'phone'
+                  'comment', 'created_at', 'items' ]
+        
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True, source='order_items')
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'status', 'status_display','total_price',
+                  'shipping_address', 'phone'
+                  'comment', 'created_at', 'items' ]

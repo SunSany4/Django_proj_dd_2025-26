@@ -32,6 +32,13 @@ urlpatterns = [
     path('delete/<int:pk>/', catalog_views.album_delete, name='album_delete'),
     path('comment/create/<int:album_pk>/', catalog_views.comment_create, name='comment_create'),
     path('comment/delete/<int:comment_pk>/', catalog_views.comment_delete, name='comment_delete'),
+    path('cart/', catalog_views.cart_view, name='cart_view'),
+    path('cart/add/<int:album_id>/', catalog_views.add_cart, name='cart_add'),
+    path('cart/remove/<int:album_id>/', catalog_views.cart_remove, name='cart_remove'),
+    path('cart/update/<int:item_id>/', catalog_views.cart_update, name='cart_update'),
+    path('checkout/', catalog_views.checkout_view, name='checkout'),
+    path('orders/', catalog_views.orders_list, name='orders_list'),
+    path('order/<int:order_id>/', catalog_views.order_detail, name='order_detail'),
     # URLs для аутентификации
     path('register/', users_views.register, name='register'),
     path('login/',users_views.user_login, name='login'),
