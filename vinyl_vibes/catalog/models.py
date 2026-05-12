@@ -162,6 +162,15 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    def get_total_items(self):
+        """Общее количество товаров в заказе"""
+        return sum(item.quantity for item in self.order_items.all())
+    
+    def get_items_count(self):
+        """Количество позиций в заказе"""
+        return self.order_items.count()
+
     def __str__(self):
         return f"Заказ #{self.id} - {self.user.username}"
     
@@ -181,4 +190,6 @@ class OrderItem(models.Model):
         return f"{self.album.title} x {self.quantity}"
     
     def get_total_price(self):
+        if self.price is None or self.quantity is None:
+            return 0
         return self.price * self.quantity

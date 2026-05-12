@@ -37,7 +37,7 @@ urlpatterns = [
     path('cart/remove/<int:album_id>/', catalog_views.cart_remove, name='cart_remove'),
     path('cart/update/<int:item_id>/', catalog_views.cart_update, name='cart_update'),
     path('checkout/', catalog_views.checkout_view, name='checkout'),
-    path('orders/', catalog_views.orders_list, name='orders_list'),
+    path('orders', catalog_views.orders_list, name='orders_list'),
     path('order/<int:order_id>/', catalog_views.order_detail, name='order_detail'),
     # URLs для аутентификации
     path('register/', users_views.register, name='register'),
