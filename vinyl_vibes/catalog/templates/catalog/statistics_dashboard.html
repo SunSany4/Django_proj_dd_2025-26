@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика продаж{% endblock %}
+
+{% block extrahead %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .stats-container {
+        padding: 20px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #3498db;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .chart-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #2c3e50;
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 400px;
+        width: 100%;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .export-btn {
+        padding: 10px 20px;
+        background: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background 0.3s;
+        display: inline-block;
+    }
+    
+    .export-btn:hover {
+        background: #2980b9;
+        color: white;
+    }
+    
+    .table-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        overflow-x: auto;
+    }
+    
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .stats-table th,
+    .stats-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .stats-table th {
+        background: #f8f9fa;
+        font-weight: bold;
+    }
+    
+    .stats-table tr:hover {
+        background: #f5f5f5;
+    }
+    
+    .filter-form {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+    }
+    
+    .filter-group {
+        flex: 1;
+    }
+    
+    .filter-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    
+    .filter-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .alert {
+        padding: 15px;
+        background-color: #f8d7da;
+        color: #721c24;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-container">
+    <h1>📊 Статистика продаж</h1>
+    
+    <!-- Фильтры -->
+    <div class="filter-form">
+        <div class="filter-group">
+            <label>Период (дней)</label>
+            <select id="daysSelect" onchange="changeDays(this.value)">
+                <option value="7" {% if selected_days == 7 %}selected{% endif %}>7 дней</option>
+                <option value="30" {% if selected_days == 30 %}selected{% endif %}>30 дней</option>
+                <option value="90" {% if selected_days == 90 %}selected{% endif %}>90 дней</option>
+                <option value="365" {% if selected_days == 365 %}selected{% endif %}>365 дней</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Кнопки экспорта -->
+    <div class="export-buttons">
+        <a href="{% url 'export_orders_excel' %}?days={{ selected_days }}" class="export-btn">📊 Экспорт заказов (Excel)</a>
+        <a href="{% url 'export_orders_csv' %}?days={{ selected_days }}" class="export-btn">📄 Экспорт заказов (CSV)</a>
+        <!-- <a href="% url 'export_albums_csv' %}" class="export-btn">🎵 Экспорт альбомов (CSV)</a> -->
+    </div>
+    
+    <!-- Статистические карточки -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">💰 Общая выручка</div>
+            <div class="stat-value">{{ total_revenue|floatformat:0 }} ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">📦 Всего заказов</div>
+            <div class="stat-value">{{ total_orders }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">👥 Пользователей</div>
+            <div class="stat-value">{{ total_users }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">🎵 Альбомов</div>
+            <div class="stat-value">{{ total_albums }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">📊 Средний чек</div>
+            <div class="stat-value">{{ avg_order_value|floatformat:0 }} ₽</div>
+        </div>
+    </div>
+    
+    <!-- График продаж -->
+    <div class="chart-container">
+        <div class="chart-title">📈 Динамика продаж</div>
+        <div class="chart-wrapper">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- График статусов -->
+    <div class="chart-container">
+        <div class="chart-title">🥧 Статусы заказов</div>
+        <div class="chart-wrapper">
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Месячная выручка -->
+    <div class="chart-container">
+        <div class="chart-title">📊 Выручка по месяцам</div>
+        <div class="chart-wrapper">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Топ альбомов -->
+    <div class="table-container">
+        <div class="chart-title">🎵 Топ-10 альбомов по продажам</div>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Исполнитель</th>
+                    <th>Альбом</th>
+                    <th>Цена</th>
+                    <th>Продано</th>
+                    <th>Выручка</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for album in top_albums %}
+                <tr>
+                    <td>{{ album.artist }}</td>
+                    <td>{{ album.title }}</td>
+                    <td>{{ album.price }} ₽</td>
+                    <td>{{ album.sold_count }}</td>
+                    <td>{{ album.revenue|floatformat:0 }} ₽</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Топ покупателей -->
+    <div class="table-container">
+        <div class="chart-title">👥 Топ-10 покупателей</div>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Пользователь</th>
+                    <th>Email</th>
+                    <th>Заказов</th>
+                    <th>Потрачено</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in top_users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.orders_count }}</td>
+                    <td>{{ user.total_spent|floatformat:0 }} ₽</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Функция для смены периода
+    function changeDays(days) {
+        window.location.href = '?days=' + days;
+    }
+    
+    // Ждем загрузки страницы и Chart.js
+    document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем, загрузился ли Chart
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js не загрузился');
+            return;
+        }
+        
+        // Данные для графиков из контекста Django
+        const dailyStats = {{ daily_stats|safe }};
+        const statusStats = {{ status_stats|safe }};
+        const monthlyRevenue = {{ monthly_revenue|safe }};
+        
+        // График продаж
+        const salesCtx = document.getElementById('salesChart')?.getContext('2d');
+        if (salesCtx && dailyStats && dailyStats.length > 0) {
+            new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: dailyStats.map(s => s.date),
+                    datasets: [
+                        {
+                            label: 'Выручка (₽)',
+                            data: dailyStats.map(s => s.revenue),
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Количество заказов',
+                            data: dailyStats.map(s => s.orders_count),
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let value = context.raw;
+                                    if (context.dataset.label === 'Выручка (₽)') {
+                                        return label + ': ' + Math.round(value).toLocaleString() + ' ₽';
+                                    }
+                                    return label + ': ' + value;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Выручка (₽)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return Math.round(value).toLocaleString() + ' ₽';
+                                }
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Количество заказов'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // График статусов
+        const statusCtx = document.getElementById('statusChart')?.getContext('2d');
+        if (statusCtx && statusStats) {
+            const statusLabels = Object.keys(statusStats);
+            const statusData = Object.values(statusStats);
+            
+            if (statusLabels.length > 0) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: statusLabels,
+                        datasets: [{
+                            data: statusData,
+                            backgroundColor: ['#f39c12', '#3498db', '#9b59b6', '#2ecc71', '#e74c3c', '#1abc9c', '#e67e22']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+                                        return `${label}: ${value} (${percent}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // График месячной выручки
+        const monthlyCtx = document.getElementById('monthlyChart')?.getContext('2d');
+        if (monthlyCtx && monthlyRevenue && monthlyRevenue.length > 0) {
+            new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: monthlyRevenue.map(m => m.month_name),
+                    datasets: [{
+                        label: 'Выручка (₽)',
+                        data: monthlyRevenue.map(m => m.revenue),
+                        backgroundColor: '#3498db',
+                        borderRadius: 8,
+                    }, {
+                        label: 'Количество заказов',
+                        data: monthlyRevenue.map(m => m.orders_count),
+                        backgroundColor: '#2ecc71',
+                        borderRadius: 8,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let value = context.raw;
+                                    if (context.dataset.label === 'Выручка (₽)') {
+                                        return label + ': ' + Math.round(value).toLocaleString() + ' ₽';
+                                    }
+                                    return label + ': ' + value;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Выручка (₽)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return Math.round(value).toLocaleString() + ' ₽';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+
+<!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+
+{% endblock %}

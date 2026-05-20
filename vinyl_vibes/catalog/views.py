@@ -1,11 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Album, Comment, Cart, CartItem, Order, OrderItem
+from .export_services import *
 from .forms import AlbumForm, CommentForm, OrderForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.admin.views.decorators import staff_member_required
+from datetime import datetime
 from django.http import JsonResponse
+from .export_services import StatisticsService
+import json
 # Create your views here.
 
 
@@ -243,6 +249,87 @@ def orders_list(request):
 
 
 
+### Staff required
 
+
+@staff_member_required
+def export_orders_excel(request):
+    orders = Order.objects.all().select_related('user').prefetch_related("order_items__album")
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    status = request.GET.get('status')
+
+
+    if date_from:
+        orders = orders.filter(created_at__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__lte=date_to)
+    if status:
+        orders = orders.filter(status=status)
+
+    filename = f"orders_export_{datetime.now().strftime("%Y%m%d_%H:%M")}.xlsx"
+    return ExportService.export_orders_to_excel(orders, filename)
+
+
+@staff_member_required
+def export_orders_csv(request):
+    orders = Order.objects.all().select_related('user').prefetch_related("order_items__album")
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    status = request.GET.get('status')
+
+
+    if date_from:
+        orders = orders.filter(created_at__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__lte=date_to)
+    if status:
+        orders = orders.filter(status=status)
+
+    filename = f"orders_export_{datetime.now().strftime("%Y%m%d_%H:%M")}.csv"
+    return ExportService.export_orders_to_csv(orders, filename)
+
+
+@staff_member_required
+def export_order_pdf(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    return ExportService.export_order_to_pdf(order)
+
+
+@staff_member_required
+def statistics_dashboard(request):
+
+    days = int(request.GET.get('days', 30))
+    
+    # Собираем статистику
+    daily_stats = StatisticsService.get_daily_stats(days)
+    top_albums = StatisticsService.get_top_albums(10)
+    top_users = StatisticsService.get_top_users(10)
+    status_stats = StatisticsService.get_status_stats()
+    monthly_revenue = StatisticsService.get_monthly_revenue()
+    
+    # Общая статистика
+    total_orders = Order.objects.count()
+    total_revenue = Order.objects.aggregate(total=models.Sum('total_price'))['total'] or 0
+    total_users = User.objects.count()
+    total_albums = Album.objects.count()
+    avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
+    
+    # Конвертируем в JSON для JavaScript
+    context = {
+        'daily_stats': daily_stats,
+        'top_albums': top_albums,
+        'top_users': top_users,
+        'status_stats': json.dumps(status_stats),
+        'monthly_revenue': json.dumps(monthly_revenue),
+        'total_orders': total_orders,
+        'total_revenue': total_revenue,
+        'total_users': total_users,
+        'total_albums': total_albums,
+        'avg_order_value': avg_order_value,
+        'selected_days': days,
+    }
+    
+    return render(request, 'catalog/statistics_dashboard.html', context)
 
 
