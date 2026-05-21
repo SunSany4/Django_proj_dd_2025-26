@@ -43,6 +43,7 @@ urlpatterns = [
     path('export/orders/excel', catalog_views.export_orders_excel, name='export_orders_excel'),
     path('export/orders/csv', catalog_views.export_orders_csv, name='export_orders_csv'),
     path('export/orders/pdf/<int:order_id>', catalog_views.export_order_pdf, name='export_order_pdf'),
+    path('export/orders/pdf/', catalog_views.export_orders_pdf, name='export_orders_pdf'),
     path('statistics/', catalog_views.statistics_dashboard, name='statistics_dashboard'),
     # URLs для аутентификации
     path('register/', users_views.register, name='register'),

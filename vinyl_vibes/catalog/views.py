@@ -297,6 +297,25 @@ def export_order_pdf(request, order_id):
 
 
 @staff_member_required
+def export_orders_pdf(request):
+    orders = Order.objects.all().select_related('user').prefetch_related("order_items__album")
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    status = request.GET.get('status')
+
+
+    if date_from:
+        orders = orders.filter(created_at__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__lte=date_to)
+    if status:
+        orders = orders.filter(status=status)
+
+    filename = f"orders_export_{datetime.now().strftime("%Y%m%d_%H:%M")}.pdf"
+    return ExportService.export_orders_to_pdf(orders, filename)
+
+
+@staff_member_required
 def statistics_dashboard(request):
 
     days = int(request.GET.get('days', 30))
